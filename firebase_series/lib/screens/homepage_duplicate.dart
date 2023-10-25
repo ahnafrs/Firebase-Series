@@ -9,10 +9,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({Key? key}) : super(key: key);
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  _HomePageState createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
@@ -20,7 +20,6 @@ class _HomePageState extends State<HomePage> {
   TextEditingController nameController = TextEditingController();
   TextEditingController ageController = TextEditingController();
   XFile? profilePic;
-  bool isUploading = false;
 
   Future<void> chooseImageFromGallery() async {
     final ImagePicker _picker = ImagePicker();
@@ -54,20 +53,18 @@ class _HomePageState extends State<HomePage> {
     emailController.clear();
     ageController.clear();
 
-    if (name != "" && email != "" && age != "") {
-      setState(() {
-        isUploading = true;
-      });
-
-      File imageFile = File(profilePic!.path);
-      try {
-        TaskSnapshot taskSnapshot = await FirebaseStorage.instance
+    if (name != "" && email != "" && age != "" && profilePic != null) {
+      Future<void>.delayed(Duration.zero, () async {
+        File imageFile = File(profilePic!.path);
+        UploadTask uploadTask = FirebaseStorage.instance
             .ref()
             .child("profilePictures")
             .child(Uuid().v1())
             .putFile(imageFile);
 
+        TaskSnapshot taskSnapshot = await uploadTask;
         String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
         Map<String, dynamic> userData = {
           'name': name,
           'email': email,
@@ -76,16 +73,11 @@ class _HomePageState extends State<HomePage> {
         };
 
         await FirebaseFirestore.instance.collection('users').add(userData);
+
         setState(() {
-          isUploading = false;
           profilePic = null;
         });
-      } catch (error) {
-        print('Error uploading image: $error');
-        setState(() {
-          isUploading = false;
-        });
-      }
+      });
     } else {
       print('Please fill all the form');
     }
@@ -102,11 +94,10 @@ class _HomePageState extends State<HomePage> {
         title: Text('Hello'),
         actions: [
           IconButton(
-            onPressed: () {
-              signOut();
-            },
-            icon: Icon(Icons.logout),
-          ),
+              onPressed: () {
+                signOut();
+              },
+              icon: Icon(Icons.logout)),
         ],
       ),
       body: SafeArea(
@@ -148,11 +139,11 @@ class _HomePageState extends State<HomePage> {
               ),
               SizedBox(height: 16.0),
               ElevatedButton(
-                onPressed: isUploading ? null : saveUser,
+                onPressed: () {
+                  saveUser();
+                },
                 child: Text("Save"),
               ),
-              if (isUploading)
-                CircularProgressIndicator(), // Show loading indicator
               SizedBox(height: 30.0),
               StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -164,26 +155,23 @@ class _HomePageState extends State<HomePage> {
                     if (snapshot.hasData && snapshot.data != null) {
                       return Expanded(
                         child: ListView.builder(
-                          itemCount: snapshot.data!.docs.length,
-                          itemBuilder: (context, index) {
-                            String documentId = snapshot.data!.docs[index].id;
-                            Map<String, dynamic> userMap =
-                                snapshot.data!.docs[index].data()
-                                    as Map<String, dynamic>;
-                            return ListTile(
-                              title: Text(
-                                userMap['name'] + '(${userMap['age']})',
-                              ),
-                              subtitle: Text(userMap['email']),
-                              trailing: IconButton(
-                                onPressed: () {
-                                  deleteDocument(documentId);
-                                },
-                                icon: Icon(Icons.delete),
-                              ),
-                            );
-                          },
-                        ),
+                            itemCount: snapshot.data!.docs.length,
+                            itemBuilder: (context, index) {
+                              String documentId = snapshot.data!.docs[index].id;
+                              Map<String, dynamic> userMap =
+                                  snapshot.data!.docs[index].data()
+                                      as Map<String, dynamic>;
+                              return ListTile(
+                                title: Text(
+                                    userMap['name'] + '(${userMap['age']})'),
+                                subtitle: Text(userMap['email']),
+                                trailing: IconButton(
+                                    onPressed: () {
+                                      deleteDocument(documentId);
+                                    },
+                                    icon: Icon(Icons.delete)),
+                              );
+                            }),
                       );
                     } else {
                       return Text('No Data!');

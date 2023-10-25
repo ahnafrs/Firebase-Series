@@ -25,14 +25,14 @@ Future<void> main() async {
   // print(snapshot.data().toString());
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Map<String, dynamic> newUserData = {
-    "name": "Pokemon",
-    "email": "pokemon@gmail.com"
-  };
-  await _firestore.collection('users').doc('your-id-here').update({
-    'email': 'pokemonfusion@gmail.com',
-  });
-  print("Update user saved");
+  // Map<String, dynamic> newUserData = {
+  //   "name": "Pokemon",
+  //   "email": "pokemon@gmail.com"
+  // };
+  // await _firestore.collection('users').doc('your-id-here').update({
+  //   'email': 'pokemonfusion@gmail.com',
+  // });
+  // print("Update user saved");
   // await _firestore.collection('users').add(newUserData);
   // print("new user saved");
 
